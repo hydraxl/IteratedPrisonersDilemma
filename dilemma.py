@@ -5,26 +5,27 @@ class Choice(Enum):
     CHEAT = 1
 
 class Ruleset():
-    # Point Values gained in each outcome
-    BOTH_COOPERATE = 2
-    ONE_COOPERATE = (3, -1) # (CHEAT, COOPERATE)
-    BOTH_CHEAT = 0
+    def __init__(self, both_cooperate: int = 2, both_cheat: int = 0, one_cooperate: tuple[int, int] = (3, -1)):
+        # Point Values gained in each outcome
+        self.both_cooperate = both_cooperate # default 2
+        self.one_cooperate = one_cooperate # default (3, -1), format (CHEAT, COOPERATE)
+        self.both_cheat = both_cheat # default 0
 
 # History of previous outcomes with the same opponent
 class History:
-    def __init__(self, history: list[tuple[Choice, Choice]]=[], flipped: list[tuple[Choice, Choice]]=[]):
-        self.history = history
+    def __init__(self, data: list[tuple[Choice, Choice]]=[], flipped: list[tuple[Choice, Choice]]=[]):
+        self.data = data
         self.flipped = flipped
     
     def add(self, c1: Choice, c2: Choice):
-        self.history.append( (c1, c2) )
+        self.data.append( (c1, c2) )
         self.flipped.append( (c2, c1) )
     
     # Flips c1 and c2 for when history is shared with second player
     def flip(self) -> History:
         # WARNING: Returns a direct reference to the class variable.
         # Mutating the returned object will modify shared class state.
-        return History(self.flipped, self.history)
+        return History(self.flipped, self.data)
 
 # Method for deciding whether to cooperate or cheat based on match history
 class Player():
@@ -33,29 +34,29 @@ class Player():
         self.score = score
 
 # Run two players against each other and assign points based on the decision they make
-def run_dilemma(p1: Player, p2: Player, h: History) -> tuple[Choice, Choice]:
-    choice1 = p1.strategy(h)
-    choice2 = p2.strategy(h.flip())
+def run_dilemma(p1: Player, p2: Player, h: History, r: Ruleset) -> tuple[Choice, Choice]:
+    choice1 = p1.strategy(h, r)
+    choice2 = p2.strategy(h.flip(), r)
 
     h.add(choice1, choice2)
     
     if choice1 == Choice.COOPERATE and choice2 == Choice.COOPERATE:
-        result = Ruleset.BOTH_COOPERATE
+        result = r.both_cooperate
         p1.score += result
         p2.score += result
     
     elif choice1 == Choice.CHEAT and choice2 == Choice.COOPERATE:
-        result = Ruleset.ONE_COOPERATE
+        result = r.one_cooperate
         p1.score += result[0]
         p2.score += result[1]
     
     elif choice1 == Choice.COOPERATE and choice2 == Choice.CHEAT:
-        result = Ruleset.ONE_COOPERATE
+        result = r.one_cooperate
         p1.score += result[1]
         p2.score += result[0]
     
     else:
-        result = Ruleset.BOTH_CHEAT
+        result = r.both_cheat
         p1.score += result
         p2.score += result
     
@@ -64,10 +65,11 @@ def run_dilemma(p1: Player, p2: Player, h: History) -> tuple[Choice, Choice]:
 
 def iterate_dilemma(p1: Player, p2: Player, n: int = 10):
     h = History() # History tracker
+    r = Ruleset() # Default ruleset
 
     # Repeat dilemma n times, updating history with each iteration
     for i in range(n):
-        choices = run_dilemma(p1, p2, h)
+        choices = run_dilemma(p1, p2, h, r)
         h.add(*choices)
 
 

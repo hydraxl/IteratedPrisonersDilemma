@@ -1,4 +1,4 @@
-from dilemma import Ruleset, Choice, History
+from .common import *
 
-def always_cheat(h: History):
+def always_cheat(h: History, r: Ruleset):
     return Choice.CHEAT
